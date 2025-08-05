@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.CommandLine;
+using Tmds.DBus.Protocol;
 
 namespace bletests.Processors
 {
@@ -23,6 +24,11 @@ namespace bletests.Processors
             {
             }
             .WithHandler(this, nameof(Initialize)));
+
+            cmd.AddCommand(new Command("devices", "List current devices")
+            {
+            }
+           .WithHandler(this, nameof(ListDevices)));
 
             cmd.AddCommand(new Command("start-discover", "Start Discovering")
             {
@@ -50,7 +56,7 @@ namespace bletests.Processors
 
             cmd.AddCommand(new Command("pair", "Pair")
             {
-    
+                new Option<string>(new string[] { "--address", "-a" }, "Mac Address").IsRequired()
             }
             .WithHandler<CommandProcessor>(this, nameof(Pair)));
 
@@ -62,9 +68,27 @@ namespace bletests.Processors
 
             cmd.AddCommand(new Command("trust", "Trust")
             {
-
+                   new Option<string>(new string[] { "--address", "-a" }, "Mac Address").IsRequired()
             }
             .WithHandler<CommandProcessor>(this, nameof(Trust)));
+
+            cmd.AddCommand(new Command("unpair", "Unpair")
+              {
+                     new Option<string>(new string[] { "--address", "-a" }, "Mac Address").IsRequired()
+              }
+          .WithHandler<CommandProcessor>(this, nameof(Unpair)));
+
+            cmd.AddCommand(new Command("open", "Open door")
+              {
+                     new Option<string>(new string[] { "--address", "-a" }, "Mac Address").IsRequired()
+              }
+         .WithHandler<CommandProcessor>(this, nameof(OpenDoor)));
+
+            cmd.AddCommand(new Command("binstate", "Get binstate")
+              {
+                     new Option<string>(new string[] { "--address", "-a" }, "Mac Address").IsRequired()
+              }
+            .WithHandler<CommandProcessor>(this, nameof(BinState)));
 
             cmd.AddCommand(new Command("dispose", "Dispose")
             {
@@ -82,18 +106,30 @@ namespace bletests.Processors
 
         }
 
+        private void ListDevices()
+        {
+            _logger.LogInformation("listing devices (begin)");
+
+            QueryDevicesAsync().GetAwaiter().GetResult();
+
+            _logger.LogInformation("listing devices (end)");
+        }
+
         private void StartDiscovering()
         {
             if (OperatingSystem.IsWindows())
                 return;
 
-            _logger.LogWarning("start discovering (begin)");
+            _logger.LogInformation("start discovering (begin)");
 
             DiscoveredDevices.Clear();
 
+            foreach(var dev in QueryDevicesAsync().GetAwaiter().GetResult())
+                DiscoveredDevices.Enqueue(dev);
+
             BleAdapter.StartDiscoveryAsync().GetAwaiter().GetResult();
 
-            _logger.LogWarning("start discovering (end)");
+            _logger.LogInformation("start discovering (end)");
 
         }
 
@@ -102,11 +138,11 @@ namespace bletests.Processors
             if (OperatingSystem.IsWindows())
                 return;
 
-            _logger.LogWarning("stop discovering (begin)");
+            _logger.LogInformation("stop discovering (begin)");
 
             BleAdapter.StopDiscoveryAsync().GetAwaiter().GetResult();
 
-            _logger.LogWarning("stop discovering (end)");
+            _logger.LogInformation("stop discovering (end)");
         }
 
        
@@ -141,7 +177,7 @@ namespace bletests.Processors
             _logger.LogInformation("agent off (end)");
         }
 
-        private void Pair()
+        private void Pair(string address)
         {
 
             try
@@ -162,11 +198,13 @@ namespace bletests.Processors
 
                 bool deviceDiscovered = false;
 
+                BleDevice bleDevice = null;
                 while (!deviceDiscovered)
                 {
                     Thread.Sleep(1000);
 
-                    if (DiscoveredDevices.FirstOrDefault(d => d.Contains("C4:D3:6A:B4:82:F2") == true) != null)
+                     bleDevice = DiscoveredDevices.FirstOrDefault(d => d.Address.Contains(address));
+                    if (bleDevice != null)
                     {
                         deviceDiscovered = true;
                     }
@@ -174,12 +212,13 @@ namespace bletests.Processors
 
                 StopDiscovering();
 
-                // var pairingServer = new Tmds.DBus.Connection(new ServerConnectionOptions());
-                // await pairingServer.RegisterObjectAsync(new MyAgent());
-                var device = BleService.CreateDevice1("/org/bluez/hci0/dev_C4_D3_6A_B4_82_F2");
-                device.PairAsync().GetAwaiter().GetResult();
+                if (bleDevice != null)
+                {
+                    var device = GetDevice(address);
+                    device.PairAsync().GetAwaiter().GetResult();
 
-                _logger.LogInformation("pair (end)");
+                    _logger.LogInformation("pair (end)");
+                }
             }
             catch (Exception ex)
             {
@@ -187,25 +226,24 @@ namespace bletests.Processors
             }
         }
 
-        //private static string _passkey = "";
-        //private static ManualResetEvent _waitForPassKey = new ManualResetEvent(false);
-        //private void Passkey(string key)
-        //{ 
-        //    _passkey = key;
-        //    _waitForPassKey.Set();
-        //}
-
-        private void Trust()
+        private void Trust(string address)
         {
-            if (OperatingSystem.IsWindows())
-                return;
+            try
+            {
+                if (OperatingSystem.IsWindows())
+                    return;
 
-            _logger.LogInformation("trust (begin)");
+                _logger.LogInformation("trust (begin)");
 
-            var device = BleService.CreateDevice1("/org/bluez/hci0/dev_C4_D3_6A_B4_82_F2");
-            device.SetTrustedAsync(true);
+                var device = GetDevice(address);
+                device.SetTrustedAsync(true);
 
-            _logger.LogInformation("trust (end)");
+                _logger.LogInformation("trust (end)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error while trusting: {ex.Message}");
+            }
         }
 
         private uint HandlePasskey(string device)
@@ -241,6 +279,77 @@ namespace bletests.Processors
             _logger.LogWarning("waiting for passkey (end)");
 
             return UInt32.Parse(passkey);
+        }
+
+        private void Unpair(string address)
+        {
+            try
+            {
+                _logger.LogInformation("unpairing (begin)");
+
+                var device = GetDevice(address);
+                BleAdapter.RemoveDeviceAsync(device.Path);
+
+                _logger.LogInformation("unpairing (end)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error while upairing: {ex.Message}");
+            }
+        }
+
+        private void OpenDoor(string address)
+        {
+            try
+            {
+                _logger.LogInformation("open door (begin)");
+
+                var device = GetDevice(address);
+
+                var c = device.Service.CreateGattCharacteristic1($"{device.Path}/service000d/char0012");
+                c.WriteValueAsync(
+                    new byte[] { 0x01 },
+                    new Dictionary<string, VariantValue> {
+                        { "type", "request" },
+                        { "offset", (ushort)0 }
+                    }).GetAwaiter().GetResult();
+
+                _logger.LogInformation("opening door (end)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error while opening door: {ex.Message}");
+            }
+        }
+
+        private void BinState(string address)
+        {
+            try
+            {
+                _logger.LogInformation("bin state (begin)");
+
+                var device = GetDevice(address);
+
+
+                //var gattService = service.CreateGattService1("/org/bluez/hci0/dev_C4_D3_6A_B4_82_F2/service000d");
+                //var gattServiceProps = await gattService.GetPropertiesAsync();
+
+                var c = device.Service.CreateGattCharacteristic1($"{device.Path}/service000d/char000f");
+                var v = c.ReadValueAsync(
+                    new Dictionary<string, VariantValue> {
+                        { "type", "request" },
+                        { "offset", (ushort)0 }
+                    }).GetAwaiter().GetResult();
+
+                if (v != null)
+                    _logger.LogInformation($"state: {BitConverter.ToString(v).Replace("-","")}");
+
+                _logger.LogInformation("bin state (end)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error while getting binstate: {ex.Message}");
+            }
         }
 
         private void Dispose()

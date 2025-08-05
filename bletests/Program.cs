@@ -29,46 +29,10 @@ namespace Alphatronics.ccTalk.Console
         private static async Task Main(string[] args)
         {
 
-            //disconnect and query devices
-            //var device = service.CreateDevice1("/org/bluez/hci0/dev_C4_D3_6A_B4_82_F2");
-            //await device.DisconnectAsync();
 
-            //var connected = await device.GetConnectedAsync();
-            //System.Console.WriteLine($"device is connected: {connected}");
-
-            //await DiscoverDevicesAsync(objectManager);
-
-            ////connect and query devices
-            //await device.ConnectAsync();
-
-            //connected = await device.GetConnectedAsync();
-            //System.Console.WriteLine($"device is connected: {connected}");
-
-            //await DiscoverDevicesAsync(objectManager);
-
-            //get device data
-            //var name = await device.GetNameAsync();
-            //var address = await device.GetAddressAsync();
-            //System.Console.WriteLine($"device: name:{name}, address {address}");
-
-
-            ////TODO query device services and characteristics
-
-            //var gattService = service.CreateGattService1("/org/bluez/hci0/dev_C4_D3_6A_B4_82_F2/service000d");
-            //var gattServiceProps = await gattService.GetPropertiesAsync();
-
-
-            //remove device (unpair)
-            //await adapter.RemoveDeviceAsync("/org/bluez/hci0/dev_C4_D3_6A_B4_82_F2");
-
-            //open door
-            //var c = device.Service.CreateGattCharacteristic1("/org/bluez/hci0/dev_C4_D3_6A_B4_82_F2/service000d/char0012");
-            //await c.WriteValueAsync(
-            //    new byte[] { 0x01 },
-            //    new Dictionary<string, VariantValue> { 
-            //        { "type", "request" },
-            //        { "offset", (ushort)0 }
-            //    });
+            string commandsFile = Path.Combine(Directory.GetCurrentDirectory(), FILE_NAME);
+            if (File.Exists(commandsFile))
+                File.Delete(commandsFile);
 
             _fileWatcher = new FileSystemWatcher();
             _fileWatcher.Filter = FILE_NAME;
