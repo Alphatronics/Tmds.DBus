@@ -23,6 +23,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{EE68
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{90E6724C-F066-45A2-AC95-3B2CBD2598A5}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Alphatronics", "Alphatronics", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "bletests", "bletests\bletests.csproj", "{09D575C6-A812-4B66-8F0E-2A62B0C54B4B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -61,6 +65,10 @@ Global
 		{7BF15990-B7F6-43F7-9040-E738FC19ACD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7BF15990-B7F6-43F7-9040-E738FC19ACD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7BF15990-B7F6-43F7-9040-E738FC19ACD6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09D575C6-A812-4B66-8F0E-2A62B0C54B4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09D575C6-A812-4B66-8F0E-2A62B0C54B4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09D575C6-A812-4B66-8F0E-2A62B0C54B4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09D575C6-A812-4B66-8F0E-2A62B0C54B4B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -71,6 +79,7 @@ Global
 		{12836498-ABFE-4A4A-8FF3-BEB53B278B85} = {EE687302-7A5F-4270-A45D-5E9A78A8A04C}
 		{DE9ABCFE-B1CD-407D-ADAF-34005BE35DF9} = {EE687302-7A5F-4270-A45D-5E9A78A8A04C}
 		{7BF15990-B7F6-43F7-9040-E738FC19ACD6} = {EE687302-7A5F-4270-A45D-5E9A78A8A04C}
+		{09D575C6-A812-4B66-8F0E-2A62B0C54B4B} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {668547B7-AB6F-4E49-A616-C679BCCE3DD1}
