@@ -5,8 +5,8 @@
   //"adapterArgs": "pi@192.168.0.200 -P 22 -pw raspberry -batch -T /data/.vs-debugger/vsdbg --interpreter=vscode",
   //"adapterArgs": "-i C:/Users/david.maelfait/.ssh/putty_id_rsa.ppk alphatronics@192.168.0.200 -P 22 -batch -T /data/.vs-debugger/vsdbg --interpreter=vscode",
   //"adapterArgs": "service@10.5.0.19 -P 22 -pw atatat -batch -T /home/service/.vs-debugger64/vsdbg --interpreter=vscode",
-  //"adapterArgs": "service@192.168.0.233 -P 22 -pw atatat -batch -T /home/service/.vs-debugger64/vsdbg --interpreter=vscode",
-  "adapterArgs": "service@10.5.0.4 -P 22 -pw atatat -batch -T /home/service/.vs-debugger64/vsdbg --interpreter=vscode",
+  "adapterArgs": "service@192.168.0.110 -P 22 -pw atatat -batch -T /home/service/.vs-debugger64/vsdbg --interpreter=vscode",
+  //"adapterArgs": "service@10.5.0.4 -P 22 -pw atatat -batch -T /home/service/.vs-debugger64/vsdbg --interpreter=vscode",
   "configurations": [
     {
       "name": ".NET Core Launch",

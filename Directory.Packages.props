@@ -1,6 +1,7 @@
 <Project>
   <ItemGroup>
     <!-- Tmds.DBus dependencies -->
+    <PackageVersion Include="CSharpFunctionalExtensions" Version="3.6.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.0" />

@@ -1,4 +1,5 @@
-﻿using bluez.DBus;
+﻿using bletests.Entities;
+using bluez.DBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
@@ -24,7 +25,7 @@ namespace bletests.Processors
         protected readonly Adapter1 BleAdapter;
         protected readonly AgentManager1 BleAgentManager;
 
-        protected ConcurrentQueue<BleDevice> DiscoveredDevices = new ConcurrentQueue<BleDevice>();
+        protected ConcurrentQueue<BleDeviceInfo> DiscoveredDevices = new ConcurrentQueue<BleDeviceInfo>();
 
         public CommandProcessor(ILogger logger, IConfiguration configuration)
         {
@@ -44,7 +45,6 @@ namespace bletests.Processors
 
                     BleConnection = new Connection(Address.System!);
                     BleConnection.ConnectAsync().GetAwaiter().GetResult();
-
                     _logger.LogInformation("Connected to system bus.");
 
                 }
@@ -61,14 +61,14 @@ namespace bletests.Processors
                 {
                     BleObjectManager = BleService.CreateObjectManager("/");
 
-                    foreach (var dev in QueryDevicesAsync().GetAwaiter().GetResult())
+                    foreach (var dev in BleObjectManager.QueryDeviceInfosAsync().GetAwaiter().GetResult())
                         DiscoveredDevices.Enqueue(dev);
 
                     BleObjectManager.WatchInterfacesAddedAsync((ex, interfaces) =>
                     {
                         if (interfaces.Interfaces.TryGetValue("org.bluez.Device1", out var properties))
                         {
-                            var bleDevice = CreateBleDevice(properties, interfaces.Object);
+                            var bleDevice = new BleDeviceInfo(interfaces.Interfaces, interfaces.Object,null);
                             DiscoveredDevices.Enqueue(bleDevice);
 
                             _logger.LogWarning($"Discovered: {bleDevice}] at {interfaces.Object}");
@@ -99,77 +99,77 @@ namespace bletests.Processors
             return BleService.CreateDevice1(bleDevice.Path);
         }
 
-        private BleDevice CreateBleDevice(Dictionary<string, VariantValue> properties, ObjectPath path)
-        {
-            var devName = properties.TryGetValue("Name", out var nameVal) ? nameVal.ToString() : "(unknown)";
-            var devAddress = properties.TryGetValue("Address", out var addressVal) ? addressVal.ToString() : "(unknown)";
-            var devPaired = properties.TryGetValue("Paired", out var pairedVal) ? pairedVal.GetBool() : false;
-            var devConnected = properties.TryGetValue("Connected", out var connectedVal) ? connectedVal.GetBool() : false;
+        //private BleDeviceInfo CreateBleDevice(Dictionary<string, VariantValue> properties, ObjectPath path)
+        //{
+        //    var devName = properties.TryGetValue("Name", out var nameVal) ? nameVal.ToString() : "(unknown)";
+        //    var devAddress = properties.TryGetValue("Address", out var addressVal) ? addressVal.ToString() : "(unknown)";
+        //    var devPaired = properties.TryGetValue("Paired", out var pairedVal) ? pairedVal.GetBool() : false;
+        //    var devConnected = properties.TryGetValue("Connected", out var connectedVal) ? connectedVal.GetBool() : false;
 
-            return new BleDevice() { Path = path, Name = devName, Address = devAddress, IsPaired = devPaired, IsConnected = devConnected };
-        }
+        //    return new BleDeviceInfo() { Path = path, Name = devName, Address = devAddress, IsPaired = devPaired, IsConnected = devConnected };
+        //}
 
-        protected async Task<BleDevice[]> QueryDevicesAsync()
-        {
-            var objects = await BleObjectManager.GetManagedObjectsAsync();
-            var devices = new List<BleDevice>();
+        //protected async Task<BleDevice[]> QueryDevicesAsync()
+        //{
+        //    var objects = await BleObjectManager.GetManagedObjectsAsync();
+        //    var devices = new List<BleDevice>();
 
-            foreach (var obj in objects)
-            {
-                var path = obj.Key;
-                var interfaces = obj.Value;
+        //    foreach (var obj in objects)
+        //    {
+        //        var path = obj.Key;
+        //        var interfaces = obj.Value;
 
-                //find  devices
-                if (interfaces.TryGetValue("org.bluez.Device1", out var properties))
-                {
-
-
-                    var bleDevice = CreateBleDevice(properties, path);
-                    devices.Add(bleDevice);
-
-                    _logger.LogInformation($"Device - {bleDevice}");
-
-                    if (bleDevice.IsConnected)
-                    {
-                        // Step 2: Find GATT services under this device
-                        foreach (var serviceObj in objects)
-                        {
-                            var servicePath = serviceObj.Key;
-                            var serviceInterfaces = serviceObj.Value;
-
-                            if (servicePath.ToString().StartsWith(path.ToString()) &&
-                                serviceInterfaces.ContainsKey("org.bluez.GattService1"))
-                            {
-                                var uuid = serviceInterfaces["org.bluez.GattService1"].TryGetValue("UUID", out var uuidVal)
-                                           ? uuidVal.ToString()
-                                           : "(unknown)";
-                                _logger.LogInformation($"    Service: {servicePath} (UUID: {uuid})");
+        //        //find  devices
+        //        if (interfaces.TryGetValue("org.bluez.Device1", out var properties))
+        //        {
 
 
-                                // Step 3: Find characteristics under this service
-                                foreach (var charObj in objects)
-                                {
-                                    var charPath = charObj.Key;
-                                    var charInterfaces = charObj.Value;
+        //            var bleDevice = CreateBleDevice(properties, path);
+        //            devices.Add(bleDevice);
 
-                                    if (charPath.ToString().StartsWith(servicePath.ToString()) &&
-                                        charInterfaces.ContainsKey("org.bluez.GattCharacteristic1"))
-                                    {
-                                        var serviceUid = charInterfaces["org.bluez.GattCharacteristic1"].TryGetValue("UUID", out var serviceUuidVal)
-                                            ? serviceUuidVal.ToString()
-                                            : "(unknown)";
-                                        _logger.LogInformation($"    Characteristic: {charPath} (UUID: {serviceUid})");
-                                    }
-                                }
-                            }
-                        }
-                    }
+        //            _logger.LogInformation($"Device - {bleDevice}");
 
-                }
-            }
+        //            if (bleDevice.IsConnected)
+        //            {
+        //                // Step 2: Find GATT services under this device
+        //                foreach (var serviceObj in objects)
+        //                {
+        //                    var servicePath = serviceObj.Key;
+        //                    var serviceInterfaces = serviceObj.Value;
 
-            return devices.ToArray();
+        //                    if (servicePath.ToString().StartsWith(path.ToString()) &&
+        //                        serviceInterfaces.ContainsKey("org.bluez.GattService1"))
+        //                    {
+        //                        var uuid = serviceInterfaces["org.bluez.GattService1"].TryGetValue("UUID", out var uuidVal)
+        //                                   ? uuidVal.ToString()
+        //                                   : "(unknown)";
+        //                        _logger.LogInformation($"    Service: {servicePath} (UUID: {uuid})");
 
-        }
+
+        //                        // Step 3: Find characteristics under this service
+        //                        foreach (var charObj in objects)
+        //                        {
+        //                            var charPath = charObj.Key;
+        //                            var charInterfaces = charObj.Value;
+
+        //                            if (charPath.ToString().StartsWith(servicePath.ToString()) &&
+        //                                charInterfaces.ContainsKey("org.bluez.GattCharacteristic1"))
+        //                            {
+        //                                var serviceUid = charInterfaces["org.bluez.GattCharacteristic1"].TryGetValue("UUID", out var serviceUuidVal)
+        //                                    ? serviceUuidVal.ToString()
+        //                                    : "(unknown)";
+        //                                _logger.LogInformation($"    Characteristic: {charPath} (UUID: {serviceUid})");
+        //                            }
+        //                        }
+        //                    }
+        //                }
+        //            }
+
+        //        }
+        //    }
+
+        //    return devices.ToArray();
+
+        //}
     }
 }

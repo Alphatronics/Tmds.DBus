@@ -1,4 +1,5 @@
 ﻿
+using bletests.Entities;
 using bluez.DBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -90,6 +91,12 @@ namespace bletests.Processors
               }
             .WithHandler<CommandProcessor>(this, nameof(BinState)));
 
+            cmd.AddCommand(new Command("state", "Get device state")
+              {
+                     new Option<string>(new string[] { "--address", "-a" }, "Mac Address").IsRequired()
+              }
+          .WithHandler<CommandProcessor>(this, nameof(DeviceState)));
+
             cmd.AddCommand(new Command("dispose", "Dispose")
             {
 
@@ -110,7 +117,11 @@ namespace bletests.Processors
         {
             _logger.LogInformation("listing devices (begin)");
 
-            QueryDevicesAsync().GetAwaiter().GetResult();
+            var devices = BleObjectManager.QueryDeviceInfosAsync().GetAwaiter().GetResult();
+
+                _logger.LogInformation(String.Join<BleDeviceInfo>('\n',devices));
+      
+           
 
             _logger.LogInformation("listing devices (end)");
         }
@@ -124,7 +135,7 @@ namespace bletests.Processors
 
             DiscoveredDevices.Clear();
 
-            foreach(var dev in QueryDevicesAsync().GetAwaiter().GetResult())
+            foreach(var dev in BleObjectManager.QueryDeviceInfosAsync().GetAwaiter().GetResult())
                 DiscoveredDevices.Enqueue(dev);
 
             BleAdapter.StartDiscoveryAsync().GetAwaiter().GetResult();
@@ -198,12 +209,13 @@ namespace bletests.Processors
 
                 bool deviceDiscovered = false;
 
-                BleDevice bleDevice = null;
+                BleDeviceInfo bleDevice = null;
                 while (!deviceDiscovered)
                 {
                     Thread.Sleep(1000);
 
                      bleDevice = DiscoveredDevices.FirstOrDefault(d => d.Address.Contains(address));
+                   
                     if (bleDevice != null)
                     {
                         deviceDiscovered = true;
@@ -342,13 +354,37 @@ namespace bletests.Processors
                     }).GetAwaiter().GetResult();
 
                 if (v != null)
-                    _logger.LogInformation($"state: {BitConverter.ToString(v).Replace("-","")}");
+                    _logger.LogInformation($"bin state: {BitConverter.ToString(v).Replace("-","")}");
 
                 _logger.LogInformation("bin state (end)");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error while getting binstate: {ex.Message}");
+            }
+        }
+
+        private void DeviceState(string address)
+        {
+            try
+            {
+                _logger.LogInformation("device state (begin)");
+
+                var device = GetDevice(address);
+;               
+                var paired = device.GetPairedAsync().GetAwaiter().GetResult();
+                var connected = device.GetConnectedAsync().GetAwaiter().GetResult();
+
+                var deviceMetadata = BleObjectManager.QueryDeviceInfoAsync(address).GetAwaiter().GetResult();
+
+                _logger.LogInformation($"device state: paired:{paired}, connected:{connected}");
+                _logger.LogInformation($"device metadata: {deviceMetadata}");
+
+                _logger.LogInformation("device state (end)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error while getting device state: {ex.Message}");
             }
         }
 
